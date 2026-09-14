@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "herdr-speed-read"
+version = "0.1.0"
+description = "Read completed AI replies in a small Herdr popup"
+requires-python = ">=3.12"
+dependencies = ["markdown-it-py>=3,<5", "wcwidth>=0.2,<1"]
+
+[project.scripts]
+herdr-speed-read = "herdr_speed_read.application:main"
+
+[tool.setuptools.packages.find]
+include = ["herdr_speed_read*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
