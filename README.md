@@ -34,7 +34,9 @@ With Herdr's default prefix, press **Ctrl+B**, release, then **F** in the AI pan
 | R           | Restart the reply                       |
 | Q or Escape | Close the popup                         |
 
-The reader starts at 400 words per minute, remembers your selected speed, and pauses longer at punctuation. Speed stays between 50 and 2,000 words per minute. It shows progress and waits at the end so you can replay or close it.
+The reader opens paused. Press Space to begin a three-second countdown: 3, 2, 1, then the first word. Resuming and restarting use the same countdown; Space cancels it and returns to paused. Changing speed during the countdown does not delay the start.
+
+Reading starts at 400 words per minute, remembers your selected speed, and pauses longer at punctuation. Speed stays between 50 and 2,000 words per minute. The reader shows progress and waits at the end so you can replay or close it.
 
 Markdown formatting and terminal escapes are removed. Link labels, code, list text, table content, and Unicode text remain. Long identifiers continue across successive frames instead of being cut off. The reply is normalized locally, never summarized by a model.
 

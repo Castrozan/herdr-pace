@@ -66,6 +66,16 @@ def test_empty_and_completed_views_are_actionable():
     assert "Q/Esc close" in finished
 
 
+@pytest.mark.parametrize("remaining", [3, 2, 1])
+def test_countdown_replaces_the_word_until_reading_starts(remaining):
+    playback = ReaderPlayback(["One"], 400, paused=False, countdown_seconds=remaining)
+    frame = render_frame(playback, 64, 11)
+    assert "Starting in" in frame
+    word_line = frame.split("\033[5;1H")[1].split("\033[")[0]
+    assert word_line.strip() == str(remaining)
+    assert "One" not in frame
+
+
 def test_long_identifiers_are_read_in_full_across_frames():
     identifier = "https://example.test/" + "identifier" * 15
     frames = reading_words(identifier)

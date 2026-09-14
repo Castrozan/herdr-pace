@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "herdr-speed-read"
-version = "0.1.0"
+version = "0.2.0"
 description = "Read completed AI replies in a small Herdr popup"
 requires-python = ">=3.12"
 dependencies = ["markdown-it-py>=3,<5", "wcwidth>=0.2,<1"]

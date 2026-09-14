@@ -9,7 +9,8 @@ class ReaderPlayback:
     words: list[str]
     words_per_minute: int
     position: int = 0
-    paused: bool = False
+    paused: bool = True
+    countdown_seconds: int = 0
 
     @property
     def finished(self) -> bool:
@@ -28,20 +29,41 @@ class ReaderPlayback:
         )
         return 60 / self.words_per_minute * multiplier
 
+    @property
+    def frame_delay(self) -> float:
+        return 1.0 if self.countdown_seconds else self.word_delay
+
+    def start_countdown(self) -> None:
+        if not self.words:
+            return
+        self.paused = False
+        self.countdown_seconds = 3
+
+    def advance_frame(self) -> None:
+        if self.paused or self.finished:
+            return
+        if self.countdown_seconds:
+            self.countdown_seconds -= 1
+        else:
+            self.position += 1
+
     def handle_key(self, key: str) -> bool:
         if key in ("q", "Q", "\x1b", "\x03"):
             return False
         if key in (" ", "p", "P"):
             if self.finished:
                 self.position = 0
-                self.paused = False
+                self.start_countdown()
+            elif self.paused:
+                self.start_countdown()
             else:
-                self.paused = not self.paused
+                self.paused = True
+                self.countdown_seconds = 0
         elif key in ("+", "="):
             self.words_per_minute = min(MAX_WPM, self.words_per_minute + WPM_STEP)
         elif key in ("-", "_"):
             self.words_per_minute = max(MIN_WPM, self.words_per_minute - WPM_STEP)
         elif key in ("r", "R"):
             self.position = 0
-            self.paused = False
+            self.start_countdown()
         return True

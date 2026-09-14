@@ -18,6 +18,8 @@ def centered_line(text: str, width: int) -> str:
 def render_frame(playback: ReaderPlayback, width: int, height: int) -> str:
     middle = max(2, height // 2)
     status = "Done" if playback.finished else "Paused" if playback.paused else "Reading"
+    if playback.countdown_seconds:
+        status = "Starting in"
     progress = min(playback.position + 1, len(playback.words))
     heading = f"{status}  ·  {playback.words_per_minute} WPM"
     if not playback.words:
@@ -25,8 +27,11 @@ def render_frame(playback: ReaderPlayback, width: int, height: int) -> str:
         heading = "Speed reader"
     elif playback.finished:
         word = centered_line("Finished. Press R to read again.", width)
+    elif playback.countdown_seconds:
+        word = centered_line(str(playback.countdown_seconds), width)
     else:
         word = format_word_with_orp_highlight(playback.word, 1, width)
+    playback_control = "play" if playback.paused or playback.finished else "pause"
     lines = (
         (max(1, middle - 2), centered_line(heading, width)),
         (middle, word),
@@ -36,7 +41,9 @@ def render_frame(playback: ReaderPlayback, width: int, height: int) -> str:
         ),
         (
             height,
-            centered_line("Space pause  +/- speed  R restart  Q/Esc close", width),
+            centered_line(
+                f"Space {playback_control}  +/- speed  R restart  Q/Esc close", width
+            ),
         ),
     )
     return "\033[2J" + "".join(f"\033[{row};1H{text}" for row, text in lines)
@@ -44,7 +51,7 @@ def render_frame(playback: ReaderPlayback, width: int, height: int) -> str:
 
 def display_popup(playback: ReaderPlayback) -> None:
     with open_keyboard_terminal() as keyboard_descriptor:
-        deadline = time.monotonic() + playback.word_delay
+        deadline = time.monotonic() + playback.frame_delay
         previous_frame_state = None
         while True:
             width, height = os.get_terminal_size(keyboard_descriptor)
@@ -52,6 +59,7 @@ def display_popup(playback: ReaderPlayback) -> None:
                 playback.position,
                 playback.words_per_minute,
                 playback.paused,
+                playback.countdown_seconds,
                 width,
                 height,
             )
@@ -68,7 +76,8 @@ def display_popup(playback: ReaderPlayback) -> None:
                 key = os.read(keyboard_descriptor, 1).decode("utf-8", errors="ignore")
                 if not key or not playback.handle_key(key):
                     return
-                deadline = time.monotonic() + playback.word_delay
+                if not playback.countdown_seconds or key in (" ", "p", "P", "r", "R"):
+                    deadline = time.monotonic() + playback.frame_delay
             elif advancing and time.monotonic() >= deadline:
-                playback.position += 1
-                deadline = time.monotonic() + playback.word_delay
+                playback.advance_frame()
+                deadline = time.monotonic() + playback.frame_delay
