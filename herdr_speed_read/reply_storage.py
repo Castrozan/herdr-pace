@@ -4,9 +4,17 @@ import os
 import re
 import tempfile
 import time
+from dataclasses import asdict
 from pathlib import Path
 
-from .reader_settings import DEFAULT_WPM, MAX_WPM, MIN_WPM
+from .reader_settings import (
+    DEFAULT_COUNTDOWN_SECONDS,
+    DEFAULT_WPM,
+    MAX_COUNTDOWN_SECONDS,
+    MAX_WPM,
+    MIN_WPM,
+    ReaderSettings,
+)
 
 PLUGIN_ID = "castrozan.speed-read"
 MAX_REPLY_BYTES = 1024 * 1024
@@ -64,19 +72,22 @@ def load_reply(key: str) -> str:
     return text if isinstance(text, str) else ""
 
 
-def load_reading_speed() -> int:
+def load_reader_settings() -> ReaderSettings:
     try:
         with (state_directory() / "settings.json").open("rb") as source:
             settings = json.loads(source.read(4096))
-        speed = settings.get("words_per_minute")
-        if type(speed) is int and MIN_WPM <= speed <= MAX_WPM:
-            return speed
-    except (OSError, ValueError, AttributeError):
-        pass
-    return DEFAULT_WPM
+    except (OSError, ValueError):
+        return ReaderSettings()
+    if not isinstance(settings, dict):
+        return ReaderSettings()
+    speed = settings.get("words_per_minute")
+    if type(speed) is not int or not MIN_WPM <= speed <= MAX_WPM:
+        speed = DEFAULT_WPM
+    countdown = settings.get("countdown_duration_seconds")
+    if type(countdown) is not int or not 0 <= countdown <= MAX_COUNTDOWN_SECONDS:
+        countdown = DEFAULT_COUNTDOWN_SECONDS
+    return ReaderSettings(speed, countdown)
 
 
-def save_reading_speed(words_per_minute: int) -> None:
-    atomic_write(
-        state_directory() / "settings.json", {"words_per_minute": words_per_minute}
-    )
+def save_reader_settings(settings: ReaderSettings) -> None:
+    atomic_write(state_directory() / "settings.json", asdict(settings))

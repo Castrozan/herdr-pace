@@ -155,3 +155,16 @@ def test_missing_palette_keeps_long_words_inside_a_narrow_pane():
     )
     assert "Enlarge pane" in frame
     assert "supercalifragilistic" not in frame
+
+
+@pytest.mark.parametrize("duration", [0, 5, 10])
+def test_countdown_setting_and_controls_fit_native_popup(duration):
+    playback = ReaderPlayback(
+        ["Hello"], 2000, position=1, countdown_duration_seconds=duration
+    )
+    frame = render_frame(playback, TerminalGeometry(61, 9), None)
+    assert f"2000 WPM  {duration}s countdown" in frame
+    assert "[/] countdown" in frame
+    assert "Q/Esc close" in frame
+    lines = re.findall(r"\x1b\[\d+;1H([^\x1b]*)", frame)
+    assert all(wcswidth(line) <= 61 for line in lines)

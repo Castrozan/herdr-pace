@@ -5,7 +5,7 @@ COLOR_QUERY = "\033]10;?\033\\\033]4;1;?\033\\"
 COLOR_REPORT = re.compile(
     rb"(10|4;1);rgb:([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})"
 )
-READER_KEYS = b" qQpPrR+-=_\x03"
+READER_KEYS = b" qQpPrR+-=_[]\x03"
 
 
 @dataclass(frozen=True)

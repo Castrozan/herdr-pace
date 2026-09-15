@@ -1,6 +1,13 @@
 from dataclasses import dataclass
 
-from .reader_settings import MAX_WPM, MIN_WPM, PUNCTUATION_DELAY_MULTIPLIER, WPM_STEP
+from .reader_settings import (
+    DEFAULT_COUNTDOWN_SECONDS,
+    MAX_COUNTDOWN_SECONDS,
+    MAX_WPM,
+    MIN_WPM,
+    PUNCTUATION_DELAY_MULTIPLIER,
+    WPM_STEP,
+)
 from .word_rendering import has_trailing_punctuation
 
 
@@ -11,6 +18,7 @@ class ReaderPlayback:
     position: int = 0
     paused: bool = True
     countdown_seconds: int = 0
+    countdown_duration_seconds: int = DEFAULT_COUNTDOWN_SECONDS
 
     @property
     def finished(self) -> bool:
@@ -37,7 +45,17 @@ class ReaderPlayback:
         if not self.words:
             return
         self.paused = False
-        self.countdown_seconds = 3
+        self.countdown_seconds = self.countdown_duration_seconds
+
+    def adjust_countdown(self, seconds: int) -> None:
+        duration = max(
+            0, min(MAX_COUNTDOWN_SECONDS, self.countdown_duration_seconds + seconds)
+        )
+        if self.countdown_seconds:
+            self.countdown_seconds = max(
+                0, self.countdown_seconds + duration - self.countdown_duration_seconds
+            )
+        self.countdown_duration_seconds = duration
 
     def advance_frame(self) -> None:
         if self.paused or self.finished:
@@ -63,6 +81,10 @@ class ReaderPlayback:
             self.words_per_minute = min(MAX_WPM, self.words_per_minute + WPM_STEP)
         elif key in ("-", "_"):
             self.words_per_minute = max(MIN_WPM, self.words_per_minute - WPM_STEP)
+        elif key == "[":
+            self.adjust_countdown(-1)
+        elif key == "]":
+            self.adjust_countdown(1)
         elif key in ("r", "R"):
             self.position = 0
             self.start_countdown()

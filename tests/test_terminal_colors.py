@@ -35,3 +35,8 @@ def test_unterminated_report_has_bounded_storage():
     assert terminal.feed(b"\x1b]" + b"0" * 2048) == []
     assert len(terminal.pending) <= 256
     assert terminal.feed(b"\x07q") == ["q"]
+
+
+def test_countdown_controls_are_not_confused_with_terminal_sequences():
+    terminal = TerminalInput()
+    assert terminal.feed(b"[\x1b[6;16;8t]\x1b]10;rgb:fff/fff/fff\x07") == ["[", "]"]

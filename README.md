@@ -27,14 +27,17 @@ With Herdr's default prefix, press **Ctrl+B**, release, then **F** in the AI pan
 
 ## Reading
 
-| Key         | Action                                  |
-| ----------- | --------------------------------------- |
-| Space or P  | Pause or resume; replay after finishing |
-| + or -      | Change speed by 50 words per minute     |
-| R           | Restart the reply                       |
-| Q or Escape | Close the popup                         |
+| Key         | Action                                     |
+| ----------- | ------------------------------------------ |
+| Space or P  | Pause or resume; replay after finishing     |
+| + or -      | Change speed by 50 words per minute         |
+| [ or ]      | Shorten or lengthen countdown by one second |
+| R           | Restart the reply                          |
+| Q or Escape | Close the popup                            |
 
-The reader opens paused. Press Space to begin a three-second countdown: 3, 2, 1, then the first word. Resuming and restarting use the same countdown; Space cancels it and returns to paused. Changing speed during the countdown does not delay the start.
+The reader opens paused. Press Space to begin a countdown, then the first word. The default is three seconds: 3, 2, 1. Use `[` and `]` to adjust it from 0 to 10 seconds; 0 skips the countdown. The chosen duration appears beside WPM and is remembered when you close the reader, just like reading speed. Resuming and restarting use the same duration; Space cancels the countdown and returns to paused.
+
+Adjusting an active countdown preserves elapsed time. Changing its duration while reading applies to the next start without delaying the current word. Changing speed during the countdown does not delay the start.
 
 The word and countdown use a large font occupying three terminal rows. Controls and progress stay at normal size. The focus letter stays centered; long words shrink to fit without clipping. Text uses the terminal's foreground and ANSI red colors, refreshed once per second through OSC color queries. If the terminal cannot report its colors, the reader uses ordinary terminal text. Fonts are included, with Unicode shaping and CJK and emoji fallback. Resizing the terminal keeps the word inside the popup.
 

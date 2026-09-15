@@ -26,7 +26,10 @@ def render_frame(
     width, height = geometry.columns, geometry.rows
     middle = max(2, height // 2)
     progress = min(playback.position + 1, len(playback.words))
-    heading = f"{playback.words_per_minute} WPM"
+    heading = (
+        f"{playback.words_per_minute} WPM  "
+        f"{playback.countdown_duration_seconds}s countdown"
+    )
     graphics = clear_word_image()
     if not playback.words:
         word = centered_line("No completed reply in this pane yet.", width)
@@ -62,7 +65,8 @@ def render_frame(
         (
             height,
             centered_line(
-                f"Space {playback_control}  +/- speed  R restart  Q/Esc close", width
+                f"Space {playback_control}  +/- WPM  [/] countdown  R restart  Q/Esc close",
+                width,
             ),
         ),
     )
@@ -94,6 +98,7 @@ def display_popup(playback: ReaderPlayback) -> None:
                     playback.words_per_minute,
                     playback.paused,
                     playback.countdown_seconds,
+                    playback.countdown_duration_seconds,
                     geometry,
                     terminal_input.palette,
                 )
@@ -118,17 +123,23 @@ def display_popup(playback: ReaderPlayback) -> None:
                 else:
                     keys = terminal_input.finish_escape()
                 for key in keys:
+                    previous_countdown = playback.countdown_seconds
                     if not playback.handle_key(key):
                         return
-                    if not playback.countdown_seconds or key in (
-                        " ",
-                        "p",
-                        "P",
-                        "r",
-                        "R",
+                    if (
+                        key in (" ", "p", "P", "r", "R")
+                        or (
+                            key in ("+", "=", "-", "_")
+                            and not playback.countdown_seconds
+                        )
+                        or (previous_countdown and not playback.countdown_seconds)
                     ):
                         deadline = time.monotonic() + playback.frame_delay
-                if not keys and advancing and time.monotonic() >= deadline:
+                if (
+                    not playback.paused
+                    and not playback.finished
+                    and time.monotonic() >= deadline
+                ):
                     playback.advance_frame()
                     deadline = time.monotonic() + playback.frame_delay
         finally:

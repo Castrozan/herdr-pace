@@ -6,7 +6,8 @@ from types import SimpleNamespace
 import pytest
 
 from herdr_speed_read import application
-from herdr_speed_read.reply_storage import load_reply, reply_key
+from herdr_speed_read.reader_settings import ReaderSettings
+from herdr_speed_read.reply_storage import load_reader_settings, load_reply, reply_key
 
 
 def test_plugin_action_opens_popup_for_source_pane(monkeypatch):
@@ -75,3 +76,28 @@ def test_failed_open_reports_failure(monkeypatch):
     with pytest.raises(SystemExit) as error:
         application.main()
     assert error.value.code == 1
+
+
+def test_reader_restores_and_saves_countdown_with_speed(tmp_path, monkeypatch):
+    from herdr_speed_read import reader_popup
+
+    monkeypatch.setenv("HERDR_PLUGIN_STATE_DIR", str(tmp_path))
+    (tmp_path / "settings.json").write_text(
+        '{"words_per_minute":650,"countdown_duration_seconds":5}'
+    )
+    observed = []
+
+    def adjust_settings(playback):
+        observed.append(
+            (playback.words_per_minute, playback.countdown_duration_seconds)
+        )
+        assert playback.paused
+        playback.handle_key("+")
+        playback.handle_key("[")
+
+    monkeypatch.setattr(reader_popup, "display_popup", adjust_settings)
+    application.read_reply()
+    assert load_reader_settings() == ReaderSettings(700, 4)
+    application.read_reply()
+    assert observed == [(650, 5), (700, 4)]
+    assert load_reader_settings() == ReaderSettings(750, 3)

@@ -4,6 +4,7 @@ import stat
 import pytest
 
 from herdr_speed_read import reply_storage
+from herdr_speed_read.reader_settings import ReaderSettings
 
 
 @pytest.fixture(autouse=True)
@@ -71,9 +72,36 @@ def test_corrupt_reply_is_empty(tmp_path, content):
 @pytest.mark.parametrize("speed", [True, 0, 2001, "400", None])
 def test_invalid_saved_speed_uses_default(tmp_path, speed):
     (tmp_path / "settings.json").write_text(json.dumps({"words_per_minute": speed}))
-    assert reply_storage.load_reading_speed() == 400
+    assert reply_storage.load_reader_settings().words_per_minute == 400
 
 
 def test_speed_preference_round_trip():
-    reply_storage.save_reading_speed(650)
-    assert reply_storage.load_reading_speed() == 650
+    settings = ReaderSettings(650, 5)
+    reply_storage.save_reader_settings(settings)
+    assert reply_storage.load_reader_settings() == settings
+
+
+@pytest.mark.parametrize("countdown", [True, -1, 11, 1.5, "3", None])
+def test_invalid_countdown_preserves_valid_saved_speed(tmp_path, countdown):
+    (tmp_path / "settings.json").write_text(
+        json.dumps({"words_per_minute": 650, "countdown_duration_seconds": countdown})
+    )
+    assert reply_storage.load_reader_settings() == ReaderSettings(650, 3)
+
+
+def test_existing_speed_preference_keeps_default_countdown(tmp_path):
+    (tmp_path / "settings.json").write_text('{"words_per_minute":650}')
+    assert reply_storage.load_reader_settings() == ReaderSettings(650, 3)
+
+
+@pytest.mark.parametrize("duration", [0, 10])
+def test_countdown_limits_round_trip(duration):
+    settings = ReaderSettings(400, duration)
+    reply_storage.save_reader_settings(settings)
+    assert reply_storage.load_reader_settings() == settings
+
+
+@pytest.mark.parametrize("content", ["{", "[]", "null"])
+def test_corrupt_settings_use_defaults(tmp_path, content):
+    (tmp_path / "settings.json").write_text(content)
+    assert reply_storage.load_reader_settings() == ReaderSettings()

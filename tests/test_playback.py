@@ -81,3 +81,48 @@ def test_empty_reply_is_finished():
     playback.handle_key("r")
     assert playback.paused
     assert playback.countdown_seconds == 0
+
+
+@pytest.mark.parametrize("duration", [0, 1, 5, 10])
+def test_configured_countdown_applies_to_start_resume_restart_and_replay(duration):
+    playback = ReaderPlayback(["One", "two"], 400, countdown_duration_seconds=duration)
+    for key in (" ", "r"):
+        playback.handle_key(key)
+        assert playback.countdown_seconds == duration
+        assert not playback.paused
+        playback.handle_key(" ")
+    playback.position = 2
+    playback.handle_key(" ")
+    assert playback.position == 0
+    assert playback.countdown_seconds == duration
+    if duration == 0:
+        assert playback.frame_delay == pytest.approx(0.15)
+
+
+def test_countdown_adjustment_is_bounded_and_does_not_start_playback():
+    playback = ReaderPlayback(["Word"], 400)
+    for _ in range(20):
+        playback.handle_key("]")
+    assert playback.countdown_duration_seconds == 10
+    for _ in range(20):
+        playback.handle_key("[")
+    assert playback.countdown_duration_seconds == 0
+    assert playback.paused
+    assert playback.countdown_seconds == 0
+    assert playback.words_per_minute == 400
+
+
+def test_changing_active_countdown_preserves_elapsed_seconds():
+    playback = ReaderPlayback(["Word"], 400)
+    playback.handle_key(" ")
+    playback.advance_frame()
+    playback.handle_key("]")
+    assert playback.countdown_duration_seconds == 4
+    assert playback.countdown_seconds == 3
+    for _ in range(3):
+        playback.handle_key("[")
+    assert playback.countdown_seconds == 0
+    assert not playback.paused
+    assert playback.position == 0
+    playback.handle_key("]")
+    assert playback.countdown_seconds == 0

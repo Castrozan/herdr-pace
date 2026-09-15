@@ -5,13 +5,14 @@ import sys
 
 from .hook_capture import capture_hook
 from .hook_installation import install_hooks
+from .reader_settings import ReaderSettings
 from .reply_storage import (
     MAX_REPLY_BYTES,
     PLUGIN_ID,
-    load_reading_speed,
+    load_reader_settings,
     load_reply,
     reply_key,
-    save_reading_speed,
+    save_reader_settings,
 )
 
 
@@ -51,13 +52,20 @@ def read_reply() -> None:
     from .reader_popup import display_popup
 
     text = load_reply(os.environ.get("SPEED_READ_REPLY_KEY", ""))
-    original_speed = load_reading_speed()
-    playback = ReaderPlayback(reading_words(text), original_speed)
+    original_settings = load_reader_settings()
+    playback = ReaderPlayback(
+        reading_words(text),
+        original_settings.words_per_minute,
+        countdown_duration_seconds=original_settings.countdown_duration_seconds,
+    )
     try:
         display_popup(playback)
     finally:
-        if playback.words_per_minute != original_speed:
-            save_reading_speed(playback.words_per_minute)
+        settings = ReaderSettings(
+            playback.words_per_minute, playback.countdown_duration_seconds
+        )
+        if settings != original_settings:
+            save_reader_settings(settings)
 
 
 def main() -> None:
