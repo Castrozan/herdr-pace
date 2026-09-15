@@ -5,6 +5,7 @@ import pytest
 from herdr_speed_read import reader_popup
 from herdr_speed_read.reader_playback import ReaderPlayback
 from herdr_speed_read.reader_terminal import TerminalGeometry
+from herdr_speed_read.reading_word import ReadingWord
 
 
 @pytest.mark.parametrize("color_reports", [False, True])
@@ -51,7 +52,9 @@ def test_popup_waits_for_start_and_counts_three_seconds(
     monkeypatch.setattr(reader_popup.os, "read", lambda *args: keys.pop(0)[1].encode())
     monkeypatch.setattr(reader_popup.select, "select", wait_for_input)
     monkeypatch.setattr(reader_popup, "render_frame", render)
-    reader_popup.display_popup(ReaderPlayback(["One", "two."], 400))
+    reader_popup.display_popup(
+        ReaderPlayback([ReadingWord("One"), ReadingWord("two.")], 400)
+    )
 
     assert frames[0] == (0, 0, True, 0)
     for frame in [(4, 0, False, 3), (5, 0, False, 2), (5.5, 0, False, 2)]:
@@ -76,5 +79,5 @@ def test_graphics_are_cleared_if_drawing_fails(monkeypatch, capsys):
 
     monkeypatch.setattr(reader_popup, "render_frame", fail_render)
     with pytest.raises(RuntimeError, match="drawing failed"):
-        reader_popup.display_popup(ReaderPlayback(["One"], 400))
+        reader_popup.display_popup(ReaderPlayback([ReadingWord("One")], 400))
     assert capsys.readouterr().out.endswith("\033_Ga=d,d=I,i=1,q=2\033\\")

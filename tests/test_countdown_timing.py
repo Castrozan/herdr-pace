@@ -5,6 +5,7 @@ import pytest
 from herdr_speed_read import reader_popup
 from herdr_speed_read.reader_playback import ReaderPlayback
 from herdr_speed_read.reader_terminal import TerminalGeometry
+from herdr_speed_read.reading_word import ReadingWord
 
 
 @pytest.mark.parametrize(
@@ -52,7 +53,9 @@ def test_adjustment_preserves_ticks_and_full_word_intervals(
     monkeypatch.setattr(reader_popup, "render_frame", render)
     reader_popup.display_popup(
         ReaderPlayback(
-            ["One", "two", "three"], 400, countdown_duration_seconds=duration
+            [ReadingWord("One"), ReadingWord("two"), ReadingWord("three")],
+            400,
+            countdown_duration_seconds=duration,
         )
     )
 

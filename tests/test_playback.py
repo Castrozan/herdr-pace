@@ -1,10 +1,11 @@
 import pytest
 
 from herdr_speed_read.reader_playback import ReaderPlayback
+from herdr_speed_read.reading_word import ReadingWord
 
 
 def test_pause_resume_restart_and_replay():
-    playback = ReaderPlayback(["One", "two."], 400)
+    playback = ReaderPlayback([ReadingWord("One"), ReadingWord("two.")], 400)
     assert playback.paused
     playback.handle_key(" ")
     assert not playback.paused
@@ -26,7 +27,7 @@ def test_pause_resume_restart_and_replay():
 
 
 def test_countdown_finishes_before_advancing_the_first_word():
-    playback = ReaderPlayback(["One", "two."], 400)
+    playback = ReaderPlayback([ReadingWord("One"), ReadingWord("two.")], 400)
     playback.advance_frame()
     assert playback.position == 0
     playback.handle_key(" ")
@@ -42,7 +43,9 @@ def test_countdown_finishes_before_advancing_the_first_word():
 
 
 def test_pausing_during_reading_resumes_with_a_countdown():
-    playback = ReaderPlayback(["One", "two."], 400, paused=False, position=1)
+    playback = ReaderPlayback(
+        [ReadingWord("One"), ReadingWord("two.")], 400, paused=False, position=1
+    )
     playback.handle_key(" ")
     playback.advance_frame()
     assert playback.position == 1
@@ -52,7 +55,7 @@ def test_pausing_during_reading_resumes_with_a_countdown():
 
 
 def test_speed_changes_are_bounded():
-    playback = ReaderPlayback(["Word"], 400)
+    playback = ReaderPlayback([ReadingWord("Word")], 400)
     for _ in range(100):
         playback.handle_key("+")
     assert playback.words_per_minute == 2000
@@ -63,11 +66,11 @@ def test_speed_changes_are_bounded():
 
 @pytest.mark.parametrize("key", ["q", "Q", "\x1b", "\x03"])
 def test_quit_keys_close_reader(key):
-    assert not ReaderPlayback(["Word"], 400).handle_key(key)
+    assert not ReaderPlayback([ReadingWord("Word")], 400).handle_key(key)
 
 
 def test_sentence_punctuation_gets_a_reading_pause():
-    playback = ReaderPlayback(["Word", "sentence."], 400)
+    playback = ReaderPlayback([ReadingWord("Word"), ReadingWord("sentence.")], 400)
     assert playback.word_delay == pytest.approx(0.15)
     playback.position = 1
     assert playback.word_delay == pytest.approx(0.375)
@@ -85,7 +88,11 @@ def test_empty_reply_is_finished():
 
 @pytest.mark.parametrize("duration", [0, 1, 5, 10])
 def test_configured_countdown_applies_to_start_resume_restart_and_replay(duration):
-    playback = ReaderPlayback(["One", "two"], 400, countdown_duration_seconds=duration)
+    playback = ReaderPlayback(
+        [ReadingWord("One"), ReadingWord("two")],
+        400,
+        countdown_duration_seconds=duration,
+    )
     for key in (" ", "r"):
         playback.handle_key(key)
         assert playback.countdown_seconds == duration
@@ -100,7 +107,7 @@ def test_configured_countdown_applies_to_start_resume_restart_and_replay(duratio
 
 
 def test_countdown_adjustment_is_bounded_and_does_not_start_playback():
-    playback = ReaderPlayback(["Word"], 400)
+    playback = ReaderPlayback([ReadingWord("Word")], 400)
     for _ in range(20):
         playback.handle_key("]")
     assert playback.countdown_duration_seconds == 10
@@ -113,7 +120,7 @@ def test_countdown_adjustment_is_bounded_and_does_not_start_playback():
 
 
 def test_changing_active_countdown_preserves_elapsed_seconds():
-    playback = ReaderPlayback(["Word"], 400)
+    playback = ReaderPlayback([ReadingWord("Word")], 400)
     playback.handle_key(" ")
     playback.advance_frame()
     playback.handle_key("]")

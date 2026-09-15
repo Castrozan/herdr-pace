@@ -22,4 +22,4 @@ from herdr_speed_read.markdown_text import reading_words
     ],
 )
 def test_normalization_preserves_readable_content(source, expected):
-    assert " ".join(reading_words(source)) == expected
+    assert " ".join(word.text for word in reading_words(source)) == expected

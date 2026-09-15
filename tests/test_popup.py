@@ -11,6 +11,7 @@ from herdr_speed_read.markdown_text import reading_words
 from herdr_speed_read.reader_playback import ReaderPlayback
 from herdr_speed_read.reader_popup import render_frame
 from herdr_speed_read.reader_terminal import TerminalGeometry
+from herdr_speed_read.reading_word import ReadingWord
 from herdr_speed_read.terminal_colors import TerminalPalette
 
 PALETTE = TerminalPalette((247, 246, 245), (193, 112, 19))
@@ -67,7 +68,9 @@ def test_empty_and_completed_views_are_actionable():
     assert "No completed reply in this pane yet." in empty
     assert "400 WPM  3s countdown" in empty
     finished = render_frame(
-        ReaderPlayback(["Done."], 400, position=1), TerminalGeometry(62, 9), PALETTE
+        ReaderPlayback([ReadingWord("Done.")], 400, position=1),
+        TerminalGeometry(62, 9),
+        PALETTE,
     )
     assert "Finished." not in finished
     assert "Space replay" in finished
@@ -83,7 +86,9 @@ def test_countdown_replaces_the_word_until_reading_starts(remaining, monkeypatch
         return ""
 
     monkeypatch.setattr(word_graphics, "render_word_graphics", render_word)
-    playback = ReaderPlayback(["One"], 400, paused=False, countdown_seconds=remaining)
+    playback = ReaderPlayback(
+        [ReadingWord("One")], 400, paused=False, countdown_seconds=remaining
+    )
     frame = render_frame(playback, TerminalGeometry(64, 11), PALETTE)
     assert "Starting in" not in frame
     assert rendered_words == [str(remaining)]
@@ -92,13 +97,13 @@ def test_countdown_replaces_the_word_until_reading_starts(remaining, monkeypatch
 def test_long_identifiers_are_read_in_full_across_frames():
     identifier = "https://example.test/" + "identifier" * 15
     frames = reading_words(identifier)
-    assert "".join(frames) == identifier
-    assert all(wcswidth(frame) <= 24 for frame in frames)
+    assert "".join(frame.text for frame in frames) == identifier
+    assert all(wcswidth(frame.text) <= 24 for frame in frames)
 
 
 def test_only_reading_content_uses_graphics():
     frame = render_frame(
-        ReaderPlayback(["Reading"], 400), TerminalGeometry(64, 11), PALETTE
+        ReaderPlayback([ReadingWord("Reading")], 400), TerminalGeometry(64, 11), PALETTE
     )
     assert "400 WPM" in frame
     assert "Paused" not in frame
@@ -110,7 +115,7 @@ def test_only_reading_content_uses_graphics():
 
 def test_small_pane_asks_for_space_without_overflowing_graphics():
     frame = render_frame(
-        ReaderPlayback(["Reading"], 400), TerminalGeometry(12, 5), PALETTE
+        ReaderPlayback([ReadingWord("Reading")], 400), TerminalGeometry(12, 5), PALETTE
     )
     assert "Enlarge pane" in frame
     assert "a=T" not in frame
@@ -136,7 +141,7 @@ def test_terminal_geometry_uses_native_pixel_size(
 )
 def test_playback_labels_are_absent(paused, position, countdown):
     frame = render_frame(
-        ReaderPlayback(["Hello"], 400, position, paused, countdown),
+        ReaderPlayback([ReadingWord("Hello")], 400, position, paused, countdown),
         TerminalGeometry(64, 11),
         PALETTE,
     )
@@ -145,14 +150,18 @@ def test_playback_labels_are_absent(paused, position, countdown):
 
 
 def test_missing_palette_uses_terminal_text_without_guessing_colors():
-    frame = render_frame(ReaderPlayback(["Hello"], 400), TerminalGeometry(64, 11), None)
+    frame = render_frame(
+        ReaderPlayback([ReadingWord("Hello")], 400), TerminalGeometry(64, 11), None
+    )
     assert "a=T" not in frame
     assert "H\033[31me\033[39mllo" in frame
 
 
 def test_missing_palette_keeps_long_words_inside_a_narrow_pane():
     frame = render_frame(
-        ReaderPlayback(["supercalifragilistic"], 400), TerminalGeometry(12, 9), None
+        ReaderPlayback([ReadingWord("supercalifragilistic")], 400),
+        TerminalGeometry(12, 9),
+        None,
     )
     assert "Enlarge pane" in frame
     assert "supercalifragilistic" not in frame
@@ -161,7 +170,7 @@ def test_missing_palette_keeps_long_words_inside_a_narrow_pane():
 @pytest.mark.parametrize("duration", [0, 5, 10])
 def test_countdown_setting_and_controls_fit_native_popup(duration):
     playback = ReaderPlayback(
-        ["Hello"], 2000, position=1, countdown_duration_seconds=duration
+        [ReadingWord("Hello")], 2000, position=1, countdown_duration_seconds=duration
     )
     frame = render_frame(playback, TerminalGeometry(61, 9), None)
     assert f"2000 WPM  {duration}s countdown" in frame

@@ -36,11 +36,7 @@ def render_frame(
     elif width < 12 or height < 7:
         word = centered_line("Enlarge pane to read.", width)
     else:
-        reading_text = (
-            str(playback.countdown_seconds)
-            if playback.countdown_seconds
-            else playback.word
-        )
+        reading_text = playback.reading_text
         word = "" if palette else render_terminal_word(reading_text, width)
         if palette:
             graphics = render_word_graphics(
@@ -98,6 +94,7 @@ def display_popup(playback: ReaderPlayback) -> None:
                     playback.paused,
                     playback.countdown_seconds,
                     playback.countdown_duration_seconds,
+                    playback.showing_break,
                     geometry,
                     terminal_input.palette,
                 )
@@ -130,6 +127,7 @@ def display_popup(playback: ReaderPlayback) -> None:
                         or (
                             key in ("+", "=", "-", "_")
                             and not playback.countdown_seconds
+                            and not playback.showing_break
                         )
                         or (previous_countdown and not playback.countdown_seconds)
                     ):

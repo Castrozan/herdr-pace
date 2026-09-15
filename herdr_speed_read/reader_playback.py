@@ -8,17 +8,19 @@ from .reader_settings import (
     PUNCTUATION_DELAY_MULTIPLIER,
     WPM_STEP,
 )
+from .reading_word import ReadingBreak, ReadingWord
 from .word_rendering import has_trailing_punctuation
 
 
 @dataclass
 class ReaderPlayback:
-    words: list[str]
+    words: list[ReadingWord]
     words_per_minute: int
     position: int = 0
     paused: bool = True
     countdown_seconds: int = 0
     countdown_duration_seconds: int = DEFAULT_COUNTDOWN_SECONDS
+    showing_break: bool = False
 
     @property
     def finished(self) -> bool:
@@ -28,7 +30,15 @@ class ReaderPlayback:
     def word(self) -> str:
         if not self.words:
             return ""
-        return self.words[min(self.position, len(self.words) - 1)]
+        return self.words[min(self.position, len(self.words) - 1)].text
+
+    @property
+    def reading_text(self) -> str:
+        if self.countdown_seconds:
+            return str(self.countdown_seconds)
+        if self.showing_break:
+            return self.words[self.position].break_before.value
+        return self.word
 
     @property
     def word_delay(self) -> float:
@@ -39,12 +49,21 @@ class ReaderPlayback:
 
     @property
     def frame_delay(self) -> float:
-        return 1.0 if self.countdown_seconds else self.word_delay
+        if self.countdown_seconds:
+            return 1.0
+        if self.showing_break:
+            return (
+                0.6
+                if self.words[self.position].break_before == ReadingBreak.PARAGRAPH
+                else 0.3
+            )
+        return self.word_delay
 
     def start_countdown(self) -> None:
         if not self.words:
             return
         self.paused = False
+        self.showing_break = False
         self.countdown_seconds = self.countdown_duration_seconds
 
     def adjust_countdown(self, seconds: int) -> None:
@@ -62,8 +81,14 @@ class ReaderPlayback:
             return
         if self.countdown_seconds:
             self.countdown_seconds -= 1
+        elif self.showing_break:
+            self.showing_break = False
         else:
             self.position += 1
+            self.showing_break = (
+                not self.finished
+                and self.words[self.position].break_before != ReadingBreak.NONE
+            )
 
     def handle_key(self, key: str) -> bool:
         if key in ("q", "Q", "\x1b", "\x03"):
