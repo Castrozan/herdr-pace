@@ -1,6 +1,6 @@
-id = "castrozan.speed-read"
-name = "Speed Reader"
-version = "0.5.3"
+id = "castrozan.pace"
+name = "Herdr Pace"
+version = "0.6.0"
 min_herdr_version = "0.9.0"
 description = "Read the latest completed AI reply at your own pace"
 platforms = ["linux", "macos"]
@@ -12,17 +12,17 @@ command = ["nix", "build", "--out-link", ".plugin-build"]
 id = "read"
 title = "Speed-read the latest reply"
 contexts = ["pane"]
-command = ["./.plugin-build/bin/herdr-speed-read", "open"]
+command = ["./.plugin-build/bin/herdr-pace", "open"]
 
 [[actions]]
 id = "install-hooks"
 title = "Install Claude Code and Codex capture hooks"
-command = ["./.plugin-build/bin/herdr-speed-read", "install-hooks"]
+command = ["./.plugin-build/bin/herdr-pace", "install-hooks"]
 
 [[panes]]
 id = "reader"
-title = "Speed Reader"
+title = "Herdr Pace"
 placement = "popup"
 width = 64
 height = 11
-command = ["./.plugin-build/bin/herdr-speed-read", "read"]
+command = ["./.plugin-build/bin/herdr-pace", "read"]

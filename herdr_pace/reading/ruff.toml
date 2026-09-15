@@ -1,0 +1,12 @@
+extend = "../../pyproject.toml"
+
+[lint]
+extend-select = ["TID251"]
+
+[lint.flake8-tidy-imports.banned-api]
+"herdr_pace.terminal".msg = "Reading rules cannot depend on terminal presentation."
+"herdr_pace.capture".msg = "Reading rules cannot depend on capture adapters."
+"herdr_pace.storage".msg = "Reading rules cannot depend on storage."
+"herdr_pace.commands".msg = "Reading rules cannot depend on command entrypoints."
+"prompt_toolkit".msg = "The terminal framework belongs in the terminal adapter."
+"click".msg = "The command framework belongs in command entrypoints."

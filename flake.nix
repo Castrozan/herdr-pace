@@ -22,12 +22,14 @@
         in
         {
           default = pkgs.python312Packages.buildPythonApplication {
-            pname = "herdr-speed-read";
-            version = "0.5.3";
+            pname = "herdr-pace";
+            version = "0.6.0";
             pyproject = true;
             src = self;
             build-system = [ pkgs.python312Packages.setuptools ];
             dependencies = with pkgs.python312Packages; [
+              click
+              prompt-toolkit
               markdown-it-py
               wcwidth
               pygobject3
@@ -48,12 +50,18 @@
             preFixup = ''
               gappsWrapperArgs+=(--set FONTCONFIG_FILE "$FONTCONFIG_FILE")
             '';
-            nativeCheckInputs = [ pkgs.python312Packages.pytestCheckHook ];
-            pythonImportsCheck = [ "herdr_speed_read" ];
+            nativeCheckInputs = with pkgs.python312Packages; [
+              pytestCheckHook
+              pytest-asyncio
+              hypothesis
+              pexpect
+              pyte
+            ];
+            pythonImportsCheck = [ "herdr_pace" ];
             postInstall = ''
               mkdir -p "$out/share/herdr-plugin"
               substitute ${./herdr-plugin.toml} "$out/share/herdr-plugin/herdr-plugin.toml" \
-                --replace-fail './.plugin-build/bin/herdr-speed-read' "$out/bin/herdr-speed-read"
+                --replace-fail './.plugin-build/bin/herdr-pace' "$out/bin/herdr-pace"
             '';
           };
         }
@@ -69,6 +77,12 @@
               (pkgs.python312.withPackages (
                 packages: with packages; [
                   pytest
+                  pytest-asyncio
+                  hypothesis
+                  pexpect
+                  pyte
+                  click
+                  prompt-toolkit
                   markdown-it-py
                   wcwidth
                   pygobject3

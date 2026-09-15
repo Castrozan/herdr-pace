@@ -3,20 +3,22 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "herdr-speed-read"
-version = "0.5.3"
+name = "herdr-pace"
+version = "0.6.0"
 description = "Read completed AI replies in a small Herdr popup"
 requires-python = ">=3.12"
-dependencies = ["markdown-it-py>=3,<5", "wcwidth>=0.2,<1", "PyGObject>=3.46,<4", "pycairo>=1.25,<2"]
+dependencies = ["click>=8.1,<9", "prompt-toolkit>=3.0.52,<3.1", "markdown-it-py>=3,<5", "wcwidth>=0.2,<1", "PyGObject>=3.46,<4", "pycairo>=1.25,<2"]
 
 [project.scripts]
-herdr-speed-read = "herdr_speed_read.application:main"
+herdr-pace = "herdr_pace.commands:main"
 
 [tool.setuptools.packages.find]
-include = ["herdr_speed_read*"]
+include = ["herdr_pace*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 88

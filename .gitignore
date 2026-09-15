@@ -7,3 +7,4 @@ dist/
 .plugin-build
 result
 .deep-work/
+.hypothesis/
