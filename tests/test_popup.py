@@ -65,6 +65,7 @@ def test_missing_terminal_does_not_hide_cursor(monkeypatch, capsys):
 def test_empty_and_completed_views_are_actionable():
     empty = render_frame(ReaderPlayback([], 400), TerminalGeometry(62, 9), PALETTE)
     assert "No completed reply in this pane yet." in empty
+    assert "400 WPM  3s countdown" in empty
     finished = render_frame(
         ReaderPlayback(["Done."], 400, position=1), TerminalGeometry(62, 9), PALETTE
     )

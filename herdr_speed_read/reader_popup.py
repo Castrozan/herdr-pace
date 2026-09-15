@@ -33,7 +33,6 @@ def render_frame(
     graphics = clear_word_image()
     if not playback.words:
         word = centered_line("No completed reply in this pane yet.", width)
-        heading = "Speed reader"
     elif width < 12 or height < 7:
         word = centered_line("Enlarge pane to read.", width)
     else:
