@@ -23,14 +23,31 @@
         {
           default = pkgs.python312Packages.buildPythonApplication {
             pname = "herdr-speed-read";
-            version = "0.2.0";
+            version = "0.3.0";
             pyproject = true;
             src = self;
             build-system = [ pkgs.python312Packages.setuptools ];
             dependencies = with pkgs.python312Packages; [
               markdown-it-py
               wcwidth
+              pygobject3
+              pycairo
             ];
+            nativeBuildInputs = [
+              pkgs.gobject-introspection
+              pkgs.wrapGAppsNoGuiHook
+            ];
+            buildInputs = [ pkgs.pango ];
+            FONTCONFIG_FILE = pkgs.makeFontsConf {
+              fontDirectories = [
+                pkgs.dejavu_fonts
+                pkgs.noto-fonts-cjk-sans
+                pkgs.noto-fonts-color-emoji
+              ];
+            };
+            preFixup = ''
+              gappsWrapperArgs+=(--set FONTCONFIG_FILE "$FONTCONFIG_FILE")
+            '';
             nativeCheckInputs = [ pkgs.python312Packages.pytestCheckHook ];
             pythonImportsCheck = [ "herdr_speed_read" ];
             postInstall = ''
@@ -54,11 +71,22 @@
                   pytest
                   markdown-it-py
                   wcwidth
+                  pygobject3
+                  pycairo
                 ]
               ))
+              pkgs.gobject-introspection
+              pkgs.pango
               pkgs.ruff
               pkgs.nixfmt-rfc-style
             ];
+            FONTCONFIG_FILE = pkgs.makeFontsConf {
+              fontDirectories = [
+                pkgs.dejavu_fonts
+                pkgs.noto-fonts-cjk-sans
+                pkgs.noto-fonts-color-emoji
+              ];
+            };
           };
         }
       );

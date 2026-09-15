@@ -4,7 +4,7 @@ Read a completed AI reply one word at a time in a small centered Herdr popup. A 
 
 ## Install
 
-Requires macOS or Linux, Nix with flakes enabled, and a Herdr build with plugin popup support. The plugin uses the `popup` placement API; a version number alone may not identify whether a fork includes that API.
+Requires macOS or Linux, Nix with flakes enabled, a terminal supporting [Kitty graphics](https://sw.kovidgoyal.net/kitty/graphics-protocol/), and a Herdr build with plugin popup and popup graphics support. The plugin uses the `popup` placement API; a version number alone may not identify whether a fork includes that API. Herdr's `terminal.kitty_graphics` setting must be enabled; supported builds enable it by default.
 
 ```sh
 herdr plugin install Castrozan/herdr-speed-read
@@ -35,6 +35,8 @@ With Herdr's default prefix, press **Ctrl+B**, release, then **F** in the AI pan
 | Q or Escape | Close the popup                         |
 
 The reader opens paused. Press Space to begin a three-second countdown: 3, 2, 1, then the first word. Resuming and restarting use the same countdown; Space cancels it and returns to paused. Changing speed during the countdown does not delay the start.
+
+The word and countdown use a large font occupying three terminal rows. Controls and progress stay at normal size. The red focus letter stays centered; long words shrink to fit without clipping. Fonts are included, with Unicode shaping and CJK and emoji fallback. Resizing the terminal keeps the word inside the popup.
 
 Reading starts at 400 words per minute, remembers your selected speed, and pauses longer at punctuation. Speed stays between 50 and 2,000 words per minute. The reader shows progress and waits at the end so you can replay or close it.
 

@@ -4,6 +4,7 @@ import pytest
 
 from herdr_speed_read import reader_popup
 from herdr_speed_read.reader_playback import ReaderPlayback
+from herdr_speed_read.reader_terminal import TerminalGeometry
 
 
 def test_popup_waits_for_start_and_counts_three_seconds(monkeypatch, capsys):
@@ -20,16 +21,18 @@ def test_popup_waits_for_start_and_counts_three_seconds(monkeypatch, capsys):
         now += timeout
         return [], [], []
 
-    def render(playback, width, height):
+    def render(playback, geometry):
         frames.append(
             (now, playback.position, playback.paused, playback.countdown_seconds)
         )
-        return original_render(playback, width, height)
+        return original_render(playback, geometry)
 
     monkeypatch.setattr(reader_popup, "open_keyboard_terminal", lambda: nullcontext(3))
     monkeypatch.setattr(reader_popup.time, "monotonic", lambda: now)
     monkeypatch.setattr(
-        reader_popup.os, "get_terminal_size", lambda descriptor: (64, 11)
+        reader_popup.TerminalGeometry,
+        "read",
+        lambda descriptor: TerminalGeometry(64, 11),
     )
     monkeypatch.setattr(reader_popup.os, "read", lambda *args: keys.pop(0)[1].encode())
     monkeypatch.setattr(reader_popup.select, "select", wait_for_input)
@@ -43,3 +46,20 @@ def test_popup_waits_for_start_and_counts_three_seconds(monkeypatch, capsys):
     first_word_advance = next(frame[0] for frame in frames if frame[1] == 1)
     assert first_word_advance == pytest.approx(7 + 60 / 450)
     assert "Space play" in capsys.readouterr().out
+
+
+def test_graphics_are_cleared_if_drawing_fails(monkeypatch, capsys):
+    monkeypatch.setattr(reader_popup, "open_keyboard_terminal", lambda: nullcontext(3))
+    monkeypatch.setattr(
+        reader_popup.TerminalGeometry,
+        "read",
+        lambda descriptor: TerminalGeometry(64, 11),
+    )
+
+    def fail_render(*args):
+        raise RuntimeError("drawing failed")
+
+    monkeypatch.setattr(reader_popup, "render_frame", fail_render)
+    with pytest.raises(RuntimeError, match="drawing failed"):
+        reader_popup.display_popup(ReaderPlayback(["One"], 400))
+    assert capsys.readouterr().out.endswith("\033_Ga=d,d=I,i=1,q=2\033\\")
