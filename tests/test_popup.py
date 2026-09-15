@@ -11,6 +11,9 @@ from herdr_speed_read.markdown_text import reading_words
 from herdr_speed_read.reader_playback import ReaderPlayback
 from herdr_speed_read.reader_popup import render_frame
 from herdr_speed_read.reader_terminal import TerminalGeometry
+from herdr_speed_read.terminal_colors import TerminalPalette
+
+PALETTE = TerminalPalette((247, 246, 245), (193, 112, 19))
 
 
 @pytest.fixture
@@ -60,12 +63,13 @@ def test_missing_terminal_does_not_hide_cursor(monkeypatch, capsys):
 
 
 def test_empty_and_completed_views_are_actionable():
-    empty = render_frame(ReaderPlayback([], 400), TerminalGeometry(62, 9))
+    empty = render_frame(ReaderPlayback([], 400), TerminalGeometry(62, 9), PALETTE)
     assert "No completed reply in this pane yet." in empty
     finished = render_frame(
-        ReaderPlayback(["Done."], 400, position=1), TerminalGeometry(62, 9)
+        ReaderPlayback(["Done."], 400, position=1), TerminalGeometry(62, 9), PALETTE
     )
-    assert "Finished. Press R to read again." in finished
+    assert "Finished." not in finished
+    assert "Space replay" in finished
     assert "Q/Esc close" in finished
 
 
@@ -79,8 +83,8 @@ def test_countdown_replaces_the_word_until_reading_starts(remaining, monkeypatch
 
     monkeypatch.setattr(word_graphics, "render_word_graphics", render_word)
     playback = ReaderPlayback(["One"], 400, paused=False, countdown_seconds=remaining)
-    frame = render_frame(playback, TerminalGeometry(64, 11))
-    assert "Starting in" in frame
+    frame = render_frame(playback, TerminalGeometry(64, 11), PALETTE)
+    assert "Starting in" not in frame
     assert rendered_words == [str(remaining)]
 
 
@@ -92,8 +96,11 @@ def test_long_identifiers_are_read_in_full_across_frames():
 
 
 def test_only_reading_content_uses_graphics():
-    frame = render_frame(ReaderPlayback(["Reading"], 400), TerminalGeometry(64, 11))
-    assert "Paused  ·  400 WPM" in frame
+    frame = render_frame(
+        ReaderPlayback(["Reading"], 400), TerminalGeometry(64, 11), PALETTE
+    )
+    assert "400 WPM" in frame
+    assert "Paused" not in frame
     assert "Space play" in frame
     assert "1 / 1" in frame
     assert "r=3" in frame
@@ -101,7 +108,9 @@ def test_only_reading_content_uses_graphics():
 
 
 def test_small_pane_asks_for_space_without_overflowing_graphics():
-    frame = render_frame(ReaderPlayback(["Reading"], 400), TerminalGeometry(12, 5))
+    frame = render_frame(
+        ReaderPlayback(["Reading"], 400), TerminalGeometry(12, 5), PALETTE
+    )
     assert "Enlarge pane" in frame
     assert "a=T" not in frame
 
@@ -118,3 +127,31 @@ def test_terminal_geometry_uses_native_pixel_size(
     )
     geometry = TerminalGeometry.read(descriptor)
     assert geometry == TerminalGeometry(64, 11, *cell_size)
+
+
+@pytest.mark.parametrize(
+    "paused,position,countdown",
+    [(True, 0, 0), (False, 0, 0), (False, 0, 3), (False, 1, 0)],
+)
+def test_playback_labels_are_absent(paused, position, countdown):
+    frame = render_frame(
+        ReaderPlayback(["Hello"], 400, position, paused, countdown),
+        TerminalGeometry(64, 11),
+        PALETTE,
+    )
+    for label in ("Paused", "Reading", "Done", "Starting in", "Finished"):
+        assert label not in frame
+
+
+def test_missing_palette_uses_terminal_text_without_guessing_colors():
+    frame = render_frame(ReaderPlayback(["Hello"], 400), TerminalGeometry(64, 11), None)
+    assert "a=T" not in frame
+    assert "H\033[31me\033[39mllo" in frame
+
+
+def test_missing_palette_keeps_long_words_inside_a_narrow_pane():
+    frame = render_frame(
+        ReaderPlayback(["supercalifragilistic"], 400), TerminalGeometry(12, 9), None
+    )
+    assert "Enlarge pane" in frame
+    assert "supercalifragilistic" not in frame

@@ -7,9 +7,23 @@ from herdr_speed_read.reader_playback import ReaderPlayback
 from herdr_speed_read.reader_terminal import TerminalGeometry
 
 
-def test_popup_waits_for_start_and_counts_three_seconds(monkeypatch, capsys):
+@pytest.mark.parametrize("color_reports", [False, True])
+def test_popup_waits_for_start_and_counts_three_seconds(
+    monkeypatch, capsys, color_reports
+):
     now = 0.0
     keys = [(4.0, " "), (5.5, "+"), (7.4, "q")]
+    if color_reports:
+        keys.extend(
+            [
+                (0.1, "\033]10;rgb:f7f7/f6f6/f5f5\033\\"),
+                (0.2, "\033]4;1;rgb:c1c1/7070/1313\033\\"),
+                (4.9, "\033]10;rgb:eeee/ffff/aaaa\033\\"),
+                (5.8, "\033]4;1;rgb:"),
+                (6.1, "ffff/aaaa/2222\033\\"),
+            ]
+        )
+        keys.sort()
     frames = []
     original_render = reader_popup.render_frame
 
@@ -21,11 +35,11 @@ def test_popup_waits_for_start_and_counts_three_seconds(monkeypatch, capsys):
         now += timeout
         return [], [], []
 
-    def render(playback, geometry):
+    def render(playback, geometry, palette):
         frames.append(
             (now, playback.position, playback.paused, playback.countdown_seconds)
         )
-        return original_render(playback, geometry)
+        return original_render(playback, geometry, palette)
 
     monkeypatch.setattr(reader_popup, "open_keyboard_terminal", lambda: nullcontext(3))
     monkeypatch.setattr(reader_popup.time, "monotonic", lambda: now)
@@ -40,7 +54,8 @@ def test_popup_waits_for_start_and_counts_three_seconds(monkeypatch, capsys):
     reader_popup.display_popup(ReaderPlayback(["One", "two."], 400))
 
     assert frames[0] == (0, 0, True, 0)
-    assert frames[1:4] == [(4, 0, False, 3), (5, 0, False, 2), (5.5, 0, False, 2)]
+    for frame in [(4, 0, False, 3), (5, 0, False, 2), (5.5, 0, False, 2)]:
+        assert frame in frames
     assert (6, 0, False, 1) in frames
     assert (7, 0, False, 0) in frames
     first_word_advance = next(frame[0] for frame in frames if frame[1] == 1)

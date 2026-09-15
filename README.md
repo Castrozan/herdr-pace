@@ -36,9 +36,9 @@ With Herdr's default prefix, press **Ctrl+B**, release, then **F** in the AI pan
 
 The reader opens paused. Press Space to begin a three-second countdown: 3, 2, 1, then the first word. Resuming and restarting use the same countdown; Space cancels it and returns to paused. Changing speed during the countdown does not delay the start.
 
-The word and countdown use a large font occupying three terminal rows. Controls and progress stay at normal size. The red focus letter stays centered; long words shrink to fit without clipping. Fonts are included, with Unicode shaping and CJK and emoji fallback. Resizing the terminal keeps the word inside the popup.
+The word and countdown use a large font occupying three terminal rows. Controls and progress stay at normal size. The focus letter stays centered; long words shrink to fit without clipping. Text uses the terminal's foreground and ANSI red colors, refreshed once per second through OSC color queries. If the terminal cannot report its colors, the reader uses ordinary terminal text. Fonts are included, with Unicode shaping and CJK and emoji fallback. Resizing the terminal keeps the word inside the popup.
 
-Reading starts at 400 words per minute, remembers your selected speed, and pauses longer at punctuation. Speed stays between 50 and 2,000 words per minute. The reader shows progress and waits at the end so you can replay or close it.
+Reading starts at 400 words per minute, remembers your selected speed, and pauses longer at punctuation. Speed stays between 50 and 2,000 words per minute. The reader shows progress and keeps the last word visible at the end so you can replay or close it.
 
 Markdown formatting and terminal escapes are removed. Link labels, code, list text, table content, and Unicode text remain. Long identifiers continue across successive frames instead of being cut off. The reply is normalized locally, never summarized by a model.
 

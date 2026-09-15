@@ -5,6 +5,7 @@ from functools import lru_cache
 import cairo
 import gi
 
+from .terminal_colors import TerminalPalette
 from .word_rendering import compute_optimal_recognition_point
 
 READER_IMAGE_ID = 1
@@ -12,15 +13,15 @@ READER_IMAGE_ID = 1
 
 @lru_cache(maxsize=64)
 def render_word_image(
-    word: str, columns: int, cell_width: int, cell_height: int
+    word: str, columns: int, cell_width: int, cell_height: int, palette: TerminalPalette
 ) -> bytes:
     gi.require_version("Pango", "1.0")
     gi.require_version("PangoCairo", "1.0")
     gi.require_foreign("cairo")
     from gi.repository import Pango, PangoCairo
 
-    width = columns * cell_width
-    height = 3 * cell_height
+    width = columns * max(24, cell_width)
+    height = 3 * max(48, cell_height)
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
     context = cairo.Context(surface)
     layout = PangoCairo.create_layout(context)
@@ -32,7 +33,7 @@ def render_word_image(
     focus_start = len(word[:focus_position].encode())
     focus_end = len(word[: focus_position + 1].encode())
     attributes = Pango.AttrList()
-    highlight = Pango.attr_foreground_new(0xF3F3, 0x8B8B, 0xA8A8)
+    highlight = Pango.attr_foreground_new(*(channel * 257 for channel in palette.focus))
     highlight.start_index = focus_start
     highlight.end_index = focus_end
     attributes.insert(highlight)
@@ -44,12 +45,16 @@ def render_word_image(
     scale = min(
         1, (height - 4) / max(logical.height, ink.height, 1), (width / 2 - 4) / extent
     )
+    font.set_absolute_size(height * scale * Pango.SCALE)
+    layout.set_font_description(font)
+    ink, _ = layout.get_pixel_extents()
+    focus = layout.index_to_pos(focus_start)
+    focus_center = (focus.x + focus.width / 2) / Pango.SCALE
     context.translate(
-        width / 2 - focus_center * scale,
-        (height - ink.height * scale) / 2 - ink.y * scale,
+        round(width / 2 - focus_center),
+        round((height - ink.height) / 2 - ink.y),
     )
-    context.scale(scale, scale)
-    context.set_source_rgb(0.80, 0.84, 0.96)
+    context.set_source_rgb(*(channel / 255 for channel in palette.foreground))
     PangoCairo.show_layout(context, layout)
     output = io.BytesIO()
     surface.write_to_png(output)
@@ -61,10 +66,15 @@ def clear_word_image() -> str:
 
 
 def render_word_graphics(
-    word: str, columns: int, row: int, cell_width: int, cell_height: int
+    word: str,
+    columns: int,
+    row: int,
+    cell_width: int,
+    cell_height: int,
+    palette: TerminalPalette,
 ) -> str:
     payload = base64.b64encode(
-        render_word_image(word, columns, cell_width, cell_height)
+        render_word_image(word, columns, cell_width, cell_height, palette)
     ).decode()
     commands = [clear_word_image(), f"\033[{row};1H"]
     for offset in range(0, len(payload), 4096):
