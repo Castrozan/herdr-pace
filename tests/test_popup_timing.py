@@ -36,11 +36,11 @@ def test_popup_waits_for_start_and_counts_three_seconds(
         now += timeout
         return [], [], []
 
-    def render(playback, geometry, palette):
+    def render(playback, geometry, palette, redraw_controls):
         frames.append(
             (now, playback.position, playback.paused, playback.countdown_seconds)
         )
-        return original_render(playback, geometry, palette)
+        return original_render(playback, geometry, palette, redraw_controls)
 
     monkeypatch.setattr(reader_popup, "open_keyboard_terminal", lambda: nullcontext(3))
     monkeypatch.setattr(reader_popup.time, "monotonic", lambda: now)

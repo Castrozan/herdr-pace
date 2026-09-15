@@ -20,15 +20,15 @@ def render_frame(
     playback: ReaderPlayback,
     geometry: TerminalGeometry,
     palette: TerminalPalette | None,
+    redraw_controls: bool,
 ) -> str:
     from .word_graphics import clear_word_image, render_word_graphics
 
     width, height = geometry.columns, geometry.rows
     middle = max(2, height // 2)
-    progress = min(playback.position + 1, len(playback.words))
     heading = (
-        f"{playback.words_per_minute} WPM  "
-        f"{playback.countdown_duration_seconds}s countdown"
+        f"{playback.words_per_minute:4} WPM  "
+        f"{playback.countdown_duration_seconds:2}s countdown"
     )
     graphics = clear_word_image()
     if not playback.words:
@@ -47,27 +47,33 @@ def render_frame(
                 geometry.cell_height,
                 palette,
             )
-    playback_control = (
-        "replay" if playback.finished else "play" if playback.paused else "pause"
-    )
-    lines = (
+    controls = (
         (max(1, middle - 2), centered_line(heading, width)),
-        (middle, word),
         (
             min(height - 1, middle + 2),
-            centered_line(f"{progress} / {len(playback.words)}", width),
+            centered_line(
+                f"{len(playback.words)} word"
+                + ("" if len(playback.words) == 1 else "s"),
+                width,
+            ),
         ),
         (
             height,
             centered_line(
-                f"Space {playback_control}  +/- WPM  [/] countdown  R restart  Q/Esc close",
+                "Space play/pause  +/- WPM  [/] countdown  R restart  Esc quit",
                 width,
             ),
         ),
     )
+    surrounding_text = (
+        "\033[2J" + "".join(f"\033[{row};1H{text}" for row, text in controls)
+        if redraw_controls or width < 12 or height < 7
+        else "".join(f"\033[{row};1H\033[2K" for row in range(middle - 1, middle + 2))
+    )
     return (
-        "\033[?2026h\033[2J"
-        + "".join(f"\033[{row};1H{text}" for row, text in lines)
+        "\033[?2026h"
+        + surrounding_text
+        + f"\033[{middle};1H{word}"
         + graphics
         + "\033[?2026l"
     )
@@ -82,12 +88,18 @@ def display_popup(playback: ReaderPlayback) -> None:
             next_color_query = 0.0
             terminal_input = TerminalInput()
             previous_frame_state = None
+            previous_controls_state = None
             while True:
                 if time.monotonic() >= next_color_query:
                     sys.stdout.write(COLOR_QUERY)
                     sys.stdout.flush()
                     next_color_query = time.monotonic() + 1.0
                 geometry = TerminalGeometry.read(keyboard_descriptor)
+                controls_state = (
+                    playback.words_per_minute,
+                    playback.countdown_duration_seconds,
+                    geometry,
+                )
                 frame_state = (
                     playback.position,
                     playback.words_per_minute,
@@ -100,10 +112,16 @@ def display_popup(playback: ReaderPlayback) -> None:
                 )
                 if frame_state != previous_frame_state:
                     sys.stdout.write(
-                        render_frame(playback, geometry, terminal_input.palette)
+                        render_frame(
+                            playback,
+                            geometry,
+                            terminal_input.palette,
+                            controls_state != previous_controls_state,
+                        )
                     )
                     sys.stdout.flush()
                     previous_frame_state = frame_state
+                    previous_controls_state = controls_state
                 advancing = not playback.paused and not playback.finished
                 timeout = (
                     max(0, min(0.25, deadline - time.monotonic()))

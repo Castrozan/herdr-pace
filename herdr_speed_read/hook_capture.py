@@ -50,7 +50,11 @@ def transcript_reply(transcript_path: str) -> str:
         role = message.get("role", event.get("type"))
         if role == "user":
             reply = ""
-        elif role == "assistant" and message.get("channel") in (None, "final"):
+        elif (
+            role == "assistant"
+            and message.get("channel") in (None, "final")
+            and message.get("phase") in (None, "final_answer")
+        ):
             text = content_text(message.get("content"))
             if text:
                 reply = text
@@ -67,6 +71,12 @@ def completed_reply(payload: dict) -> str:
 
 def capture_hook(payload: dict) -> None:
     if payload.get("hook_event_name", "Stop") != "Stop" or payload.get("agent_id"):
+        return
+    if (
+        "last_assistant_message" in payload
+        and "transcript_path" in payload
+        and payload["transcript_path"] is None
+    ):
         return
     pane_id = os.environ.get("HERDR_PANE_ID", "")
     socket_path = os.environ.get("HERDR_SOCKET_PATH", "")

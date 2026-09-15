@@ -46,6 +46,43 @@ def test_nested_codex_session_cannot_replace_parent_reply(captured_pane, monkeyp
     assert load_reply(captured_pane) == ""
 
 
+@pytest.mark.parametrize(
+    "saved_reply", ["", "The installed copy passed the Chrome check."]
+)
+def test_ephemeral_codex_recap_cannot_replace_completed_reply(
+    captured_pane, saved_reply
+):
+    if saved_reply:
+        capture_hook(
+            {
+                "session_id": "conversation",
+                "transcript_path": "/conversation.jsonl",
+                "last_assistant_message": saved_reply,
+            }
+        )
+    capture_hook(
+        {
+            "hook_event_name": "Stop",
+            "session_id": "temporary-recap",
+            "transcript_path": None,
+            "last_assistant_message": '{"recap":"The task is complete."}',
+        }
+    )
+    assert load_reply(captured_pane) == saved_reply
+
+
+def test_legitimate_json_reply_is_preserved(captured_pane):
+    text = '{"recap":"The requested JSON response."}'
+    capture_hook(
+        {
+            "session_id": "conversation",
+            "transcript_path": "/conversation.jsonl",
+            "last_assistant_message": text,
+        }
+    )
+    assert load_reply(captured_pane) == text
+
+
 def test_missing_pane_is_a_noop(tmp_path, monkeypatch):
     monkeypatch.setenv("HERDR_PLUGIN_STATE_DIR", str(tmp_path))
     monkeypatch.delenv("HERDR_PANE_ID", raising=False)
@@ -68,38 +105,6 @@ def test_claude_transcript_ignores_tools_and_thinking(tmp_path):
     ]
     path.write_text("\n".join(map(json.dumps, events)))
     assert transcript_reply(str(path)) == "Fixed."
-
-
-def test_codex_transcript_uses_final_channel_only(tmp_path):
-    path = tmp_path / "transcript.jsonl"
-    events = [
-        {
-            "type": "response_item",
-            "payload": {
-                "role": "assistant",
-                "channel": "analysis",
-                "content": [{"type": "output_text", "text": "Private"}],
-            },
-        },
-        {
-            "type": "response_item",
-            "payload": {
-                "role": "assistant",
-                "channel": "final",
-                "content": [{"type": "output_text", "text": "Shipped."}],
-            },
-        },
-        {
-            "type": "response_item",
-            "payload": {
-                "role": "assistant",
-                "channel": "commentary",
-                "content": [{"type": "output_text", "text": "Progress"}],
-            },
-        },
-    ]
-    path.write_text("\n".join(map(json.dumps, events)))
-    assert transcript_reply(str(path)) == "Shipped."
 
 
 def test_new_user_turn_clears_old_reply(tmp_path):

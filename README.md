@@ -39,9 +39,9 @@ The reader opens paused. Press Space to begin a countdown, then the first word. 
 
 Adjusting an active countdown preserves elapsed time. Changing its duration while reading applies to the next start without delaying the current word. Changing speed during the countdown does not delay the start.
 
-The word and countdown use a large font occupying three terminal rows. Controls and progress stay at normal size. The focus letter stays centered; long words shrink to fit without clipping. Text uses the terminal's foreground and ANSI red colors, refreshed once per second through OSC color queries. If the terminal cannot report its colors, the reader uses ordinary terminal text. Fonts are included, with Unicode shaping and CJK and emoji fallback. Resizing the terminal keeps the word inside the popup.
+The word and countdown use a large font occupying three terminal rows. Controls and the total word count stay at normal size. The focus letter stays centered; long words shrink to fit without clipping. Text uses the terminal's foreground and ANSI red colors, refreshed once per second through OSC color queries. If the terminal cannot report its colors, the reader uses ordinary terminal text. Fonts are included, with Unicode shaping and CJK and emoji fallback. Resizing the terminal keeps the word inside the popup.
 
-Reading starts at 400 words per minute, remembers your selected speed, and pauses longer at punctuation. Speed stays between 50 and 2,000 words per minute. The reader shows progress and keeps the last word visible at the end so you can replay or close it.
+Reading starts at 400 words per minute, remembers your selected speed, and pauses longer at punctuation. Speed stays between 50 and 2,000 words per minute. The footer always says `Space play/pause`, including when Space will replay a finished reply. The total word count stays fixed. Only the central word, countdown, or break cue updates during playback; controls are redrawn when you change settings or resize the pane. Settings labels stay aligned when their values change. The last word stays visible at the end so you can replay or close the reader.
 
 Paragraphs, headings, and list items are separated by a `¶` cue for 0.6 seconds. Explicit Markdown line breaks, code lines, and table rows use `↵` for 0.3 seconds. Ordinary wrapped lines flow continuously. These cues do not count as words, and the next word receives its full reading interval. Pausing during a cue and resuming runs your chosen countdown, then shows the next word.
 
@@ -59,7 +59,7 @@ Markdown formatting and terminal escapes are removed. Link labels, code, list te
 }
 ```
 
-The hook inherits `HERDR_PANE_ID` and `HERDR_SOCKET_PATH` from the AI pane. Subagent events are ignored. If another stop guard can reject a draft, run capture after that guard accepts the reply. Capture failures never return a blocking exit status.
+The hook inherits `HERDR_PANE_ID` and `HERDR_SOCKET_PATH` from the AI pane. Subagent events and Codex temporary assistant runs with an explicitly null `transcript_path` are ignored, so internal conversation recaps cannot replace the saved reply. Transcript fallback selects completed answers and skips progress messages. Legitimate JSON replies are preserved. If another stop guard can reject a draft, run capture after that guard accepts the reply. Capture failures never return a blocking exit status.
 
 Only the latest reply per pane and server is stored, with at most 64 saved replies. Each reply is limited to 1 MiB; an oversized reply leaves the previous saved reply intact. Files are private to the user and live under Herdr's plugin state directory. The reader loads a snapshot when opened and does not poll transcripts or follow new replies while you read.
 

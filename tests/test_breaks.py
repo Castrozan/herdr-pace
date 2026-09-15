@@ -17,9 +17,9 @@ def test_paragraph_transition_is_visible_without_counting_as_a_word():
     )
     playback.handle_key(" ")
     playback.advance_frame()
-    frame = render_frame(playback, TerminalGeometry(61, 9), None)
+    frame = render_frame(playback, TerminalGeometry(61, 9), None, True)
     assert "¶" in frame
-    assert "2 / 2" in frame
+    assert "2 words" in frame
     assert not playback.finished
 
 
@@ -105,7 +105,7 @@ def test_break_uses_the_existing_large_font_and_terminal_palette(
         "render_word_graphics",
         lambda *arguments: rendered.append(arguments) or "",
     )
-    render_frame(playback, TerminalGeometry(61, 9), palette)
+    render_frame(playback, TerminalGeometry(61, 9), palette, True)
     assert rendered == [(marker, 61, 3, 8, 16, palette)]
 
 
@@ -123,7 +123,7 @@ def test_break_timing_keeps_full_word_intervals(monkeypatch, adjustment):
         now += timeout
         return [], [], []
 
-    def render(playback, geometry, palette):
+    def render(playback, geometry, palette, redraw_controls):
         frames.append((now, playback.reading_text, playback.paused))
         return ""
 

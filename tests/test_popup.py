@@ -64,17 +64,20 @@ def test_missing_terminal_does_not_hide_cursor(monkeypatch, capsys):
 
 
 def test_empty_and_completed_views_are_actionable():
-    empty = render_frame(ReaderPlayback([], 400), TerminalGeometry(62, 9), PALETTE)
+    empty = render_frame(
+        ReaderPlayback([], 400), TerminalGeometry(62, 9), PALETTE, True
+    )
     assert "No completed reply in this pane yet." in empty
-    assert "400 WPM  3s countdown" in empty
+    assert "400 WPM   3s countdown" in empty
     finished = render_frame(
         ReaderPlayback([ReadingWord("Done.")], 400, position=1),
         TerminalGeometry(62, 9),
         PALETTE,
+        True,
     )
     assert "Finished." not in finished
-    assert "Space replay" in finished
-    assert "Q/Esc close" in finished
+    assert "Space play/pause" in finished
+    assert "Esc quit" in finished
 
 
 @pytest.mark.parametrize("remaining", [3, 2, 1])
@@ -89,7 +92,7 @@ def test_countdown_replaces_the_word_until_reading_starts(remaining, monkeypatch
     playback = ReaderPlayback(
         [ReadingWord("One")], 400, paused=False, countdown_seconds=remaining
     )
-    frame = render_frame(playback, TerminalGeometry(64, 11), PALETTE)
+    frame = render_frame(playback, TerminalGeometry(64, 11), PALETTE, True)
     assert "Starting in" not in frame
     assert rendered_words == [str(remaining)]
 
@@ -103,19 +106,25 @@ def test_long_identifiers_are_read_in_full_across_frames():
 
 def test_only_reading_content_uses_graphics():
     frame = render_frame(
-        ReaderPlayback([ReadingWord("Reading")], 400), TerminalGeometry(64, 11), PALETTE
+        ReaderPlayback([ReadingWord("Reading")], 400),
+        TerminalGeometry(64, 11),
+        PALETTE,
+        True,
     )
     assert "400 WPM" in frame
     assert "Paused" not in frame
     assert "Space play" in frame
-    assert "1 / 1" in frame
+    assert "1 word" in frame
     assert "r=3" in frame
     assert len(re.findall(r"a=T", frame)) == 1
 
 
 def test_small_pane_asks_for_space_without_overflowing_graphics():
     frame = render_frame(
-        ReaderPlayback([ReadingWord("Reading")], 400), TerminalGeometry(12, 5), PALETTE
+        ReaderPlayback([ReadingWord("Reading")], 400),
+        TerminalGeometry(12, 5),
+        PALETTE,
+        True,
     )
     assert "Enlarge pane" in frame
     assert "a=T" not in frame
@@ -144,6 +153,7 @@ def test_playback_labels_are_absent(paused, position, countdown):
         ReaderPlayback([ReadingWord("Hello")], 400, position, paused, countdown),
         TerminalGeometry(64, 11),
         PALETTE,
+        True,
     )
     for label in ("Paused", "Reading", "Done", "Starting in", "Finished"):
         assert label not in frame
@@ -151,7 +161,10 @@ def test_playback_labels_are_absent(paused, position, countdown):
 
 def test_missing_palette_uses_terminal_text_without_guessing_colors():
     frame = render_frame(
-        ReaderPlayback([ReadingWord("Hello")], 400), TerminalGeometry(64, 11), None
+        ReaderPlayback([ReadingWord("Hello")], 400),
+        TerminalGeometry(64, 11),
+        None,
+        True,
     )
     assert "a=T" not in frame
     assert "H\033[31me\033[39mllo" in frame
@@ -162,6 +175,7 @@ def test_missing_palette_keeps_long_words_inside_a_narrow_pane():
         ReaderPlayback([ReadingWord("supercalifragilistic")], 400),
         TerminalGeometry(12, 9),
         None,
+        True,
     )
     assert "Enlarge pane" in frame
     assert "supercalifragilistic" not in frame
@@ -172,9 +186,9 @@ def test_countdown_setting_and_controls_fit_native_popup(duration):
     playback = ReaderPlayback(
         [ReadingWord("Hello")], 2000, position=1, countdown_duration_seconds=duration
     )
-    frame = render_frame(playback, TerminalGeometry(61, 9), None)
-    assert f"2000 WPM  {duration}s countdown" in frame
+    frame = render_frame(playback, TerminalGeometry(61, 9), None, True)
+    assert f"2000 WPM  {duration:2}s countdown" in frame
     assert "[/] countdown" in frame
-    assert "Q/Esc close" in frame
+    assert "Esc quit" in frame
     lines = re.findall(r"\x1b\[\d+;1H([^\x1b]*)", frame)
     assert all(wcswidth(line) <= 61 for line in lines)
