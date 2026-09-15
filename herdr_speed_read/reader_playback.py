@@ -52,11 +52,12 @@ class ReaderPlayback:
         if self.countdown_seconds:
             return 1.0
         if self.showing_break:
-            return (
-                0.6
+            word_intervals = (
+                4
                 if self.words[self.position].break_before == ReadingBreak.PARAGRAPH
-                else 0.3
+                else 2
             )
+            return 60 / self.words_per_minute * word_intervals
         return self.word_delay
 
     def start_countdown(self) -> None:

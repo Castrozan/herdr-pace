@@ -109,10 +109,13 @@ def test_break_uses_the_existing_large_font_and_terminal_palette(
     assert rendered == [(marker, 61, 3, 8, 16, palette)]
 
 
-@pytest.mark.parametrize("adjustment", ["", "+", "]"])
-def test_break_timing_keeps_full_word_intervals(monkeypatch, adjustment):
+@pytest.mark.parametrize(
+    "adjustment,adjustment_at",
+    [("", 0.6), ("+", 0.6), ("-", 0.6), ("]", 0.6), ("+" * 32, 0.9)],
+)
+def test_break_timing_keeps_full_word_intervals(monkeypatch, adjustment, adjustment_at):
     now = 0.0
-    inputs = [(0.4, " "), (0.6, adjustment), (2.8, "q")]
+    inputs = [(0.4, " "), (adjustment_at, adjustment), (2.8, "q")]
     frames = []
 
     def wait_for_input(readers, writers, errors, timeout):
@@ -146,15 +149,37 @@ def test_break_timing_keeps_full_word_intervals(monkeypatch, adjustment):
             countdown_duration_seconds=0,
         )
     )
-    interval = 60 / (450 if adjustment == "+" else 400)
+    words_per_minute = min(
+        2000, 400 + 50 * adjustment.count("+") - 50 * adjustment.count("-")
+    )
+    interval = 60 / words_per_minute
+    paragraph_end = max(0.55 + 4 * interval, adjustment_at)
     expected = [
         ("First", 0.4),
         ("¶", 0.55),
-        ("Second", 1.15),
-        ("↵", 1.15 + interval),
-        ("Third.", 1.45 + interval),
+        ("Second", paragraph_end),
+        ("↵", paragraph_end + interval),
+        ("Third.", paragraph_end + 3 * interval),
     ]
     for text, timestamp in expected:
         assert next(
             time for time, word, paused in frames if word == text and not paused
         ) == pytest.approx(timestamp)
+
+
+@pytest.mark.parametrize("words_per_minute", [50, 200, 400, 800, 2000])
+@pytest.mark.parametrize("separator,word_intervals", [("\n\n", 4), ("  \n", 2)])
+@pytest.mark.parametrize("next_word", ["Next", "Next."])
+def test_break_pacing_follows_wpm_independently_of_word_punctuation(
+    words_per_minute, separator, word_intervals, next_word
+):
+    playback = ReaderPlayback(
+        reading_words("First" + separator + next_word),
+        words_per_minute,
+        paused=False,
+    )
+    playback.advance_frame()
+    assert playback.showing_break
+    assert playback.frame_delay == pytest.approx(60 / words_per_minute * word_intervals)
+    playback.countdown_seconds = 3
+    assert playback.frame_delay == 1.0

@@ -157,8 +157,11 @@ def display_popup(playback: ReaderPlayback) -> None:
                     keys = terminal_input.finish_escape()
                 for key in keys:
                     previous_countdown = playback.countdown_seconds
+                    previous_frame_delay = playback.frame_delay
                     if not playback.handle_key(key):
                         return
+                    if key in ("+", "=", "-", "_") and playback.showing_break:
+                        deadline += playback.frame_delay - previous_frame_delay
                     if (
                         key in (" ", "p", "P", "r", "R")
                         or (
