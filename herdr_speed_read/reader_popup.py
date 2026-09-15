@@ -87,14 +87,25 @@ def display_popup(playback: ReaderPlayback) -> None:
             deadline = time.monotonic() + playback.frame_delay
             next_color_query = 0.0
             terminal_input = TerminalInput()
+            startup_deadline = time.monotonic() + 0.25
+            graphics_enabled = None if playback.words else False
             previous_frame_state = None
             previous_controls_state = None
             while True:
-                if time.monotonic() >= next_color_query:
+                if (
+                    graphics_enabled is not False
+                    and time.monotonic() >= next_color_query
+                ):
                     sys.stdout.write(COLOR_QUERY)
                     sys.stdout.flush()
                     next_color_query = time.monotonic() + 1.0
                 geometry = TerminalGeometry.read(keyboard_descriptor)
+                if graphics_enabled is None and (
+                    terminal_input.palette is not None
+                    or time.monotonic() >= startup_deadline
+                ):
+                    graphics_enabled = terminal_input.palette is not None
+                palette = terminal_input.palette if graphics_enabled else None
                 controls_state = (
                     playback.words_per_minute,
                     playback.countdown_duration_seconds,
@@ -108,26 +119,34 @@ def display_popup(playback: ReaderPlayback) -> None:
                     playback.countdown_duration_seconds,
                     playback.showing_break,
                     geometry,
-                    terminal_input.palette,
+                    palette,
                 )
-                if frame_state != previous_frame_state:
+                if graphics_enabled is not None and frame_state != previous_frame_state:
                     sys.stdout.write(
                         render_frame(
                             playback,
                             geometry,
-                            terminal_input.palette,
+                            palette,
                             controls_state != previous_controls_state,
                         )
                     )
                     sys.stdout.flush()
+                    if previous_frame_state is None:
+                        deadline = time.monotonic() + playback.frame_delay
                     previous_frame_state = frame_state
                     previous_controls_state = controls_state
-                advancing = not playback.paused and not playback.finished
+                advancing = (
+                    previous_frame_state is not None
+                    and not playback.paused
+                    and not playback.finished
+                )
                 timeout = (
                     max(0, min(0.25, deadline - time.monotonic()))
                     if advancing
                     else 0.25
                 )
+                if graphics_enabled is None:
+                    timeout = min(timeout, max(0, startup_deadline - time.monotonic()))
                 ready, _, _ = select.select([keyboard_descriptor], [], [], timeout)
                 if ready:
                     data = os.read(keyboard_descriptor, 4096)
@@ -151,7 +170,8 @@ def display_popup(playback: ReaderPlayback) -> None:
                     ):
                         deadline = time.monotonic() + playback.frame_delay
                 if (
-                    not playback.paused
+                    previous_frame_state is not None
+                    and not playback.paused
                     and not playback.finished
                     and time.monotonic() >= deadline
                 ):

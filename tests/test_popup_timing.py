@@ -6,6 +6,7 @@ from herdr_speed_read import reader_popup
 from herdr_speed_read.reader_playback import ReaderPlayback
 from herdr_speed_read.reader_terminal import TerminalGeometry
 from herdr_speed_read.reading_word import ReadingWord
+from herdr_speed_read.terminal_colors import TerminalInput
 
 
 @pytest.mark.parametrize("color_reports", [False, True])
@@ -56,7 +57,7 @@ def test_popup_waits_for_start_and_counts_three_seconds(
         ReaderPlayback([ReadingWord("One"), ReadingWord("two.")], 400)
     )
 
-    assert frames[0] == (0, 0, True, 0)
+    assert frames[0] == (0.2 if color_reports else 0.25, 0, True, 0)
     for frame in [(4, 0, False, 3), (5, 0, False, 2), (5.5, 0, False, 2)]:
         assert frame in frames
     assert (6, 0, False, 1) in frames
@@ -68,6 +69,11 @@ def test_popup_waits_for_start_and_counts_three_seconds(
 
 def test_graphics_are_cleared_if_drawing_fails(monkeypatch, capsys):
     monkeypatch.setattr(reader_popup, "open_keyboard_terminal", lambda: nullcontext(3))
+    monkeypatch.setattr(
+        reader_popup,
+        "TerminalInput",
+        lambda: TerminalInput(foreground=(247, 246, 245), focus=(193, 112, 19)),
+    )
     monkeypatch.setattr(
         reader_popup.TerminalGeometry,
         "read",

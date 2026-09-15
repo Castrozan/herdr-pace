@@ -23,7 +23,7 @@
         {
           default = pkgs.python312Packages.buildPythonApplication {
             pname = "herdr-speed-read";
-            version = "0.5.1";
+            version = "0.5.2";
             pyproject = true;
             src = self;
             build-system = [ pkgs.python312Packages.setuptools ];

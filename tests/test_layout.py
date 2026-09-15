@@ -92,7 +92,7 @@ def test_automatic_playback_only_redraws_the_reading_area(monkeypatch):
         )
     )
     full_frames = [timestamp for timestamp, frame in frames if "\033[2J" in frame]
-    assert full_frames == [0, 2.4, 2.5]
+    assert full_frames == [0.25, 2.4, 2.5]
     for timestamp, frame in frames:
         if timestamp in full_frames:
             continue
