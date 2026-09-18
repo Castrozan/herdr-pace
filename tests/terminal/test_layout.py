@@ -8,6 +8,10 @@ from herdr_pace.reading.playback import ReaderPlayback
 from herdr_pace.terminal.palette import TerminalPalette
 
 
+def visible_output(output):
+    return re.sub(r"\x1b_G.*?\x1b\\", "", output.getvalue())
+
+
 @pytest.mark.parametrize(
     "palette", [None, TerminalPalette((247, 246, 245), (193, 112, 19))]
 )
@@ -18,7 +22,7 @@ async def test_controls_stay_fixed_through_reading_pause_restart_and_replay(
         reading_words("First\n\nSecond  \nThird."), 2000, countdown_duration_seconds=0
     )
     async with reader(playback, palette) as running:
-        opening = running.output.getvalue()
+        opening = visible_output(running.output)
         assert "Space play/pause" in opening
         assert "3 words" in opening
         assert playback.paused
@@ -28,9 +32,10 @@ async def test_controls_stay_fixed_through_reading_pause_restart_and_replay(
         await running.press(" ")
         await running.press(" ")
         await running.press("r")
-        assert "Space" not in running.output.getvalue()[len(opening) :]
-        assert "WPM" not in running.output.getvalue()[len(opening) :]
-        assert "3 words" not in running.output.getvalue()[len(opening) :]
+        after = visible_output(running.output)[len(opening) :]
+        assert "Space" not in after
+        assert "WPM" not in after
+        assert "3 words" not in after
 
 
 @pytest.mark.parametrize("speed,countdown", [(50, 0), (950, 9), (1000, 10), (2000, 3)])
@@ -52,9 +57,7 @@ async def test_heading_and_total_are_centered_in_actual_terminal_output(reader):
     playback = ReaderPlayback(reading_words("First second third"), 400)
     async with reader(playback) as running:
         screen = pyte.Screen(61, 9)
-        pyte.Stream(screen).feed(
-            re.sub(r"\x1b_G.*?\x1b\\", "", running.output.getvalue())
-        )
+        pyte.Stream(screen).feed(visible_output(running.output))
         heading = running.view.heading()
         assert screen.display[1].index("WPM") == (
             61 - len(heading)
